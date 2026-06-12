@@ -1,18 +1,18 @@
 require('dotenv').config();
 const fs = require('fs');
 
-// Calculate dynamic CST campaign window (from 00:00 CST to current execution time)
+// Calculate dynamic CST campaign window from 00:00 CST
 function getCentralTimeWindow() {
     const end = new Date();
     
-    // Calculate the dynamic millisecond offset between UTC and Chicago time
+    // Calculate the dynamic millisecond offset between UTC and CST time
     const offsetMs = new Date(end.toLocaleString('en-US', { timeZone: 'America/Chicago' })) 
                      - new Date(end.toLocaleString('en-US', { timeZone: 'UTC' }));
 
-    // Get the current date components as they appear in Chicago right now
+    // Get the current date components as they appear in CST right now
     const chicagoNow = new Date(end.getTime() + offsetMs);
     
-    // Target exact midnight (00:00:00) local Chicago time
+    // Target exact midnight (00:00:00) local CST time
     const startLocal = new Date(Date.UTC(
         chicagoNow.getUTCFullYear(),
         chicagoNow.getUTCMonth(),
