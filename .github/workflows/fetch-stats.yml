@@ -44,6 +44,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No data updates found this hour."
           else
-            git commit -m "chore: auto-update campaign stats [skip ci]"
+            git commit -m "Automated update: Crossbar stats for $(date +'%Y-%m-%d %H:%M')"
             git push
           fi
