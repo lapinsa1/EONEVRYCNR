@@ -1,40 +1,40 @@
 {
-  "grandTotal": 1452,
-  "grandTotalNew": 1026,
-  "grandTotalUpdates": 426,
+  "grandTotal": 1472,
+  "grandTotalNew": 1038,
+  "grandTotalUpdates": 434,
   "grandTotalCountrySplit": {
-    "USA": 1155,
-    "GBR": 135,
+    "USA": 1172,
+    "GBR": 137,
     "CAN": 102,
     "FRA": 20,
-    "ESP": 17,
+    "ESP": 18,
     "DEU": 16,
     "IRL": 7
   },
-  "dailyTotal": 876,
-  "dailyTotalNew": 621,
-  "dailyTotalUpdates": 255,
+  "dailyTotal": 896,
+  "dailyTotalNew": 633,
+  "dailyTotalUpdates": 263,
   "dailyTotalCountrySplit": {
-    "USA": 668,
-    "GBR": 111,
+    "USA": 685,
+    "GBR": 113,
     "CAN": 50,
     "FRA": 14,
+    "ESP": 14,
     "DEU": 14,
-    "ESP": 13,
     "IRL": 6
   },
   "dailyTotalNewCountrySplit": {
-    "USA": 466,
-    "GBR": 81,
+    "USA": 476,
+    "GBR": 82,
     "CAN": 37,
     "FRA": 12,
     "DEU": 12,
-    "ESP": 9,
+    "ESP": 10,
     "IRL": 4
   },
   "dailyTotalUpdatesCountrySplit": {
-    "USA": 202,
-    "GBR": 30,
+    "USA": 209,
+    "GBR": 31,
     "CAN": 13,
     "ESP": 4,
     "FRA": 2,
@@ -43,5 +43,5 @@
   },
   "grandTotalDeuNewOptInConfirmed": 3,
   "dailyTotalDeuNewOptInConfirmed": 0,
-  "lastUpdated": "2026-06-12_12-31"
+  "lastUpdated": "2026-06-12_12-43"
 }
