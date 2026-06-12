@@ -1,0 +1,49 @@
+name: Hourly Campaign Stats Update
+
+on:
+  schedule:
+    - cron: '3 * * * *'
+  workflow_dispatch: 
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Stats Collection Script
+        env:
+          GIGYA_API_KEY: ${{ secrets.GIGYA_API_KEY }}
+          GIGYA_USER_KEY: ${{ secrets.GIGYA_USER_KEY }}
+          GIGYA_SECRET_KEY: ${{ secrets.GIGYA_SECRET_KEY }}
+        run: node fetch-campaign-stats.js
+
+      - name: Commit and Push Generated Files
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Add only the data directory where the JSONs are stored
+          git add data/
+          
+          # Check if there are changes before committing to avoid empty commit errors
+          if git diff --staged --quiet; then
+            echo "No data updates found this hour."
+          else
+            git commit -m "chore: auto-update campaign stats [skip ci]"
+            git push
+          fi

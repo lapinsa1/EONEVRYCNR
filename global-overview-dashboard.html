@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Overview Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50 p-6 font-sans antialiased">
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Global Overview Dashboard</h1>
+            <p class="text-sm text-slate-500">Dashboard for Monitoring Sign-Ups for the ONEVERYCORNER campaign</p>
+        </div>
+        <div class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm">
+            <i data-lucide="calendar" class="w-4 h-4"></i>
+            <span>Dashboard last updated: <span id="lastUpdated" class="font-bold text-indigo-900">-</span> CST</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Grand Total Sign-ups</p>
+                <h3 id="grandTotal" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+            </div>
+            <div class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center"><i data-lucide="trending-up" class="w-6 h-6"></i></div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">New Customer Total</p>
+                <h3 id="grandTotalNew" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+            </div>
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center"><i data-lucide="user-plus" class="w-6 h-6"></i></div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Existing User Total</p>
+                <h3 id="grandTotalUpdates" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+            </div>
+            <div class="w-12 h-12 bg-sky-50 text-sky-500 rounded-xl flex items-center justify-center"><i data-lucide="users" class="w-6 h-6"></i></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-[480px]">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-600"></i>
+                <h4 class="text-sm font-bold text-slate-800">Market Share by Territory</h4>
+            </div>
+            <div class="relative w-full flex-1 min-h-0 pt-2 pb-4"><canvas id="marketShareChart"></canvas></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-[480px]">
+            <div class="flex items-center gap-2 mb-6"><i data-lucide="bar-chart-3" class="w-5 h-5 text-indigo-600"></i><h4 class="text-sm font-bold text-slate-800">Regional Performance</h4></div>
+            <div id="regionalPerformance" class="space-y-5 overflow-y-auto pr-6 flex-1"><p class="text-sm text-slate-400">Loading data...</p></div>
+        </div>
+    </div>
+
+    <script>
+        const countryNameMap = { "USA": "United States", "CAN": "Canada", "ESP": "Spain", "DEU": "Germany", "FRA": "France", "IRL": "Ireland", "GBR": "United Kingdom" };
+        const calmColors = ['#4670A6', '#E19641', '#D65A5A', '#69B3A2', '#7CB342', '#F4D03F', '#9B59B6'];
+
+        fetch(`data/crossbar-latest.json`)
+            .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+            .then(data => {
+                if (data.lastUpdated) {
+                    const p = data.lastUpdated.split('_');
+                    document.getElementById('lastUpdated').innerText = p[1] ? `${p[0]} ${p[1].replace('-', ':')}` : data.lastUpdated;
+                }
+
+                document.getElementById('grandTotal').innerText = data.grandTotal.toLocaleString('en-US');
+                document.getElementById('grandTotalNew').innerText = data.grandTotalNew.toLocaleString('en-US');
+                document.getElementById('grandTotalUpdates').innerText = data.grandTotalUpdates.toLocaleString('en-US');
+
+                const sortedCountries = Object.entries(data.grandTotalCountrySplit).sort((a, b) => b[1] - a[1]);
+                const chartLabels = [], chartValues = [], container = document.getElementById('regionalPerformance');
+                container.innerHTML = '';
+
+                sortedCountries.forEach(([code, val], idx) => {
+                    const name = countryNameMap[code] || code, pct = ((val / data.grandTotal) * 100).toFixed(1);
+                    chartLabels.push(`${name} (${pct}%)`); chartValues.push(val);
+
+                    let doi = (code === 'DEU' && data.grandTotalDeuNewOptInConfirmed !== undefined) ? `<span class="text-xs font-normal text-slate-400 mr-2">(DOI: ${data.grandTotalDeuNewOptInConfirmed})</span>` : '';
+
+                    container.innerHTML += `
+                        <div>
+                            <div class="flex justify-between text-sm font-semibold text-slate-700">
+                                <span>${name}</span><div class="flex items-center">${doi}<span class="font-bold text-slate-800">${val.toLocaleString('en-US')}</span></div>
+                            </div>
+                            <div class="w-full bg-slate-100 h-2 rounded-full mt-1.5 overflow-hidden">
+                                <div class="h-2 rounded-full" style="width: ${pct}%; background-color: ${calmColors[idx % calmColors.length]}"></div>
+                            </div>
+                            <div class="text-[10px] font-bold text-slate-400 mt-1 tracking-wider">${pct}% OF GLOBAL</div>
+                        </div>`;
+                });
+
+                new Chart(document.getElementById('marketShareChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: { labels: chartLabels, datasets: [{ data: chartValues, backgroundColor: calmColors, borderWidth: 2, borderColor: '#ffffff' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, font: { size: 14 }, color: '#64748b' } } }, cutout: '35%' }
+                });
+                lucide.createIcons();
+            })
+            .catch(() => document.getElementById('regionalPerformance').innerHTML = `<p class="text-red-500 font-bold">Error loading dashboard data.</p>`);
+    </script>
+</body>
+</html>

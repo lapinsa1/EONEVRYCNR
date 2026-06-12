@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Overview Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50 p-6 font-sans antialiased">
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Daily Campaign Overview</h1>
+            <p class="text-sm text-slate-500">Daily metrics track aggregates from 0:00 AM CST of the current campaign day.</p>
+        </div>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+                <i data-lucide="calendar-search" class="w-4 h-4 text-slate-400"></i>
+                <input type="date" id="datePicker" class="text-sm font-semibold text-slate-700 outline-none cursor-pointer bg-transparent">
+            </div>
+            <div class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+                <span>Report Updated: <span id="loadedDate" class="font-bold text-indigo-900">-</span> CST</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="errorMessage" class="hidden mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+        <i data-lucide="alert-circle" class="w-4 h-4"></i><span id="errorText">No snapshot data available for the selected day.</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+            <div><p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Today's Total Sign-ups</p><h3 id="dailyTotal" class="text-3xl font-bold text-slate-800 mt-1">-</h3></div>
+            <div class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center"><i data-lucide="clock" class="w-6 h-6"></i></div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+            <div><p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Today's New Customers</p><h3 id="dailyTotalNew" class="text-3xl font-bold text-slate-800 mt-1">-</h3></div>
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center"><i data-lucide="user-plus" class="w-6 h-6"></i></div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+            <div><p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Today's Existing Users</p><h3 id="dailyTotalUpdates" class="text-3xl font-bold text-slate-800 mt-1">-</h3></div>
+            <div class="w-12 h-12 bg-sky-50 text-sky-500 rounded-xl flex items-center justify-center"><i data-lucide="users" class="w-6 h-6"></i></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-[480px]">
+            <div class="flex items-center gap-2 mb-2"><i data-lucide="pie-chart" class="w-5 h-5 text-indigo-600"></i><h4 class="text-sm font-bold text-slate-800">Daily Market Share by Territory</h4></div>
+            <div class="relative w-full flex-1 min-h-0 pt-2 pb-4"><canvas id="marketShareChart"></canvas></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-[480px]">
+            <div class="flex items-center gap-2 mb-4"><i data-lucide="table" class="w-5 h-5 text-indigo-600"></i><h4 class="text-sm font-bold text-slate-800">Country Performance Breakdown</h4></div>
+            <div class="overflow-y-auto flex-1 pr-2">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                            <th class="pb-3 text-slate-500">Country</th><th class="pb-3 text-right text-slate-500">Total Sign-ups</th><th class="pb-3 text-right text-slate-500">New Customers</th><th class="pb-3 text-right text-slate-500">Existing Users</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="text-sm text-slate-700 divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const countryNameMap = { "USA": "United States", "CAN": "Canada", "ESP": "Spain", "DEU": "Germany", "FRA": "France", "IRL": "Ireland", "GBR": "United Kingdom" };
+        const calmColors = ['#4670A6', '#E19641', '#D65A5A', '#69B3A2', '#7CB342', '#F4D03F', '#9B59B6'];
+        let currentChart = null;
+
+        function fetchDailyData(url, isInitial = false) {
+            const errorBanner = document.getElementById('errorMessage');
+            fetch(url)
+                .then(res => { if (!res.ok) throw new Error(`Snapshot not found: ${url.split('/').pop()}`); return res.json(); })
+                .then(data => {
+                    errorBanner.classList.add('hidden');
+                    if (data.lastUpdated) {
+                        const p = data.lastUpdated.split('_');
+                        if (isInitial) document.getElementById('datePicker').value = p[0];
+                        document.getElementById('loadedDate').innerText = p[1] ? `${p[0]} ${p[1].replace('-', ':')}` : data.lastUpdated;
+                    }
+
+                    document.getElementById('dailyTotal').innerText = (data.dailyTotal || 0).toLocaleString('en-US');
+                    document.getElementById('dailyTotalNew').innerText = (data.dailyTotalNew || 0).toLocaleString('en-US');
+                    document.getElementById('dailyTotalUpdates').innerText = (data.dailyTotalUpdates || 0).toLocaleString('en-US');
+
+                    const sorted = Object.entries(data.dailyTotalCountrySplit || {}).sort((a, b) => b[1] - a[1]);
+                    const chartLabels = [], chartValues = [], tbody = document.getElementById('tableBody');
+                    tbody.innerHTML = sorted.length ? '' : `<tr><td colspan="4" class="py-4 text-center text-slate-400 italic">No data available</td></tr>`;
+
+                    sorted.forEach(([code, total], idx) => {
+                        const name = countryNameMap[code] || code, pct = data.dailyTotal > 0 ? ((total / data.dailyTotal) * 100).toFixed(1) : 0;
+                        chartLabels.push(`${name} (${pct}%)`); chartValues.push(total);
+
+                        let doi = (code === 'DEU' && data.dailyTotalDeuNewOptInConfirmed !== undefined) ? `<span class="block text-[12px] font-normal text-slate-400 mt-0.5">DOI: ${data.dailyTotalDeuNewOptInConfirmed}</span>` : '';
+
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-3.5 font-medium text-slate-800 flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background-color: ${calmColors[idx % calmColors.length]}"></span>${name}</td>
+                                <td class="py-3.5 text-right"><span class="block font-bold text-slate-900">${total.toLocaleString('en-US')}</span>${doi}</td>
+                                <td class="py-3.5 text-right text-slate-600">${(data.dailyTotalNewCountrySplit?.[code] || 0).toLocaleString('en-US')}</td>
+                                <td class="py-3.5 text-right text-slate-600">${(data.dailyTotalUpdatesCountrySplit?.[code] || 0).toLocaleString('en-US')}</td>
+                            </tr>`;
+                    });
+
+                    if (currentChart) currentChart.destroy();
+                    currentChart = new Chart(document.getElementById('marketShareChart').getContext('2d'), {
+                        type: 'doughnut',
+                        data: { labels: chartLabels, datasets: [{ data: chartValues, backgroundColor: calmColors, borderWidth: 2, borderColor: '#ffffff' }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, color: '#64748b' } } }, cutout: '35%' }
+                    });
+                })
+                .catch(err => { errorBanner.classList.remove('hidden'); document.getElementById('errorText').innerText = err.message; });
+        }
+
+        fetchDailyData('data/crossbar-latest.json', true);
+
+        document.getElementById('datePicker').addEventListener('change', e => {
+            if (e.target.value) fetchDailyData(`data/crossbar-${e.target.value}.json`, false);
+        });
+        lucide.createIcons();
+    </script>
+</body>
+</html>
