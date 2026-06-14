@@ -15,19 +15,19 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
             <h1 class="text-2xl font-bold text-slate-800">Daily Campaign Overview</h1>
-            <p class="text-sm text-slate-500">Daily metrics track aggregates from 0:00 AM CST of the current campaign
-                day.</p>
+            <p class="text-sm text-slate-500">Daily metrics track aggregates from 0:00 AM CST of the given campaign day.</p>
         </div>
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <button id="refreshBtn" onclick="triggerGithubRefresh()"
-                class="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-colors cursor-pointer">
+            <button id="refreshBtn" onclick="triggerGithubRefresh()" class="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-colors cursor-pointer">
                 <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                 <span>Refresh Data</span>
             </button>
             <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
                 <i data-lucide="calendar-search" class="w-4 h-4 text-slate-400"></i>
-                <input type="date" id="datePicker"
-                    class="text-sm font-semibold text-slate-700 outline-none cursor-pointer bg-transparent">
+                <select id="dateSelect"
+                    class="text-sm font-semibold text-slate-700 outline-none cursor-pointer bg-transparent pr-4">
+                    <option value="latest">Today</option>
+                </select>
             </div>
             <div
                 class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm">
@@ -44,7 +44,6 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <!-- Today Total Card -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center"><i
@@ -57,8 +56,7 @@
         </div>
         
 
-       <!-- Today's New Customers Card --> 
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+       <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center shrink-0">
                     <i data-lucide="user-plus" class="w-6 h-6"></i>
@@ -74,7 +72,6 @@
             </div>
         </div>
 
-        <!-- Today's Existing Users Card -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-sky-50 text-sky-500 rounded-xl flex items-center justify-center">
@@ -123,19 +120,60 @@
     </div>
 
     <script>
+        const CAMPAIGN_START = "2026-06-11";
+        const CAMPAIGN_END = "2026-07-19";
         const countryNameMap = { "USA": "United States", "CAN": "Canada", "ESP": "Spain", "DEU": "Germany", "FRA": "France", "IRL": "Ireland", "GBR": "United Kingdom" };
         const calmColors = ['#4670A6', '#E19641', '#D65A5A', '#69B3A2', '#7CB342', '#F4D03F', '#9B59B6'];
         let currentChart = null;
 
+        function populateDateDropdown() {
+            const select = document.getElementById('dateSelect');
+            
+            // Resolve current client day index using Target Central Standard constraints
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Chicago',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            });
+            const parts = formatter.formatToParts(new Date());
+            const cst = Object.fromEntries(parts.map(p => [p.type, p.value]));
+            const todayStr = `${cst.year}-${cst.month}-${cst.day}`;
+            
+            let validDates = [];
+            let loopDate = new Date(Date.UTC(2026, 5, 11)); // Campaign opening boundary (June 11)
+
+            while (true) {
+                const y = loopDate.getUTCFullYear();
+                const m = String(loopDate.getUTCMonth() + 1).padStart(2, '0');
+                const d = String(loopDate.getUTCDate()).padStart(2, '0');
+                const loopStr = `${y}-${m}-${d}`;
+                
+                // Do not add today or future dates to past reporting selectors
+                if (loopStr >= todayStr || loopStr > CAMPAIGN_END) break;
+                
+                validDates.push(loopStr);
+                loopDate.setUTCDate(loopDate.getUTCDate() + 1);
+            }
+            
+            // Sort descending to place the most recent closed calendar dates on top
+            validDates.reverse();
+            
+            validDates.forEach(dateStr => {
+                const opt = document.createElement('option');
+                opt.value = dateStr;
+                opt.innerText = dateStr;
+                select.appendChild(opt);
+            });
+        }
+
         function fetchDailyData(url, isInitial = false) {
             const errorBanner = document.getElementById('errorMessage');
             fetch(url)
-                .then(res => { if (!res.ok) throw new Error(`Snapshot not found: ${url.split('/').pop()}`); return res.json(); })
+                .then(res => { if (!res.ok) throw new Error(`Daily file not found: ${url.split('/').pop()}`); return res.json(); })
                 .then(data => {
                     errorBanner.classList.add('hidden');
                     if (data.lastUpdated) {
                         const p = data.lastUpdated.split('_');
-                        if (isInitial) document.getElementById('datePicker').value = p[0];
+                        if (isInitial) document.getElementById('dateSelect').value = 'latest';
                         document.getElementById('loadedDate').innerText = p[1] ? `${p[0]} ${p[1].replace('-', ':')}` : data.lastUpdated;
                     }
 
@@ -143,12 +181,15 @@
                     document.getElementById('dailyTotalNew').innerText = (data.dailyTotalNew || 0).toLocaleString('en-US');
                     document.getElementById('dailyTotalUpdates').innerText = (data.dailyTotalUpdates || 0).toLocaleString('en-US');
 
-                    if (data.grandTotal > 0) {
-                    const newPercent = ((data.dailyTotalNew / data.dailyTotal) * 100).toFixed(1);
-                    const existingPercent = ((data.dailyTotalUpdates / data.dailyTotal) * 100).toFixed(1);
+                    if (data.dailyTotal > 0) {
+                        const newPercent = ((data.dailyTotalNew / data.dailyTotal) * 100).toFixed(1);
+                        const existingPercent = ((data.dailyTotalUpdates / data.dailyTotal) * 100).toFixed(1);
 
-                    document.getElementById('newCustomerPercent').innerText = `${newPercent}%`;
-                    document.getElementById('existingUserPercent').innerText = `${existingPercent}%`;
+                        document.getElementById('newCustomerPercent').innerText = `${newPercent}%`;
+                        document.getElementById('existingUserPercent').innerText = `${existingPercent}%`;
+                    } else {
+                        document.getElementById('newCustomerPercent').innerText = '-';
+                        document.getElementById('existingUserPercent').innerText = '-';
                     }
 
                     const sorted = Object.entries(data.dailyTotalCountrySplit || {}).sort((a, b) => b[1] - a[1]);
@@ -180,11 +221,18 @@
                 .catch(err => { errorBanner.classList.remove('hidden'); document.getElementById('errorText').innerText = err.message; });
         }
 
+        // Initialize Runtime Rendering
+        populateDateDropdown();
         fetchDailyData('data/crossbar-latest.json', true);
 
-        document.getElementById('datePicker').addEventListener('change', e => {
-            if (e.target.value) fetchDailyData(`data/crossbar-${e.target.value}.json`, false);
+        document.getElementById('dateSelect').addEventListener('change', e => {
+            if (e.target.value === 'latest') {
+                fetchDailyData('data/crossbar-latest.json', false);
+            } else if (e.target.value) {
+                fetchDailyData(`data/crossbar-${e.target.value}.json`, false);
+            }
         });
+        
         lucide.createIcons();
 
         async function triggerGithubRefresh() {
@@ -216,7 +264,7 @@
                 } else {
                     const err = await response.json();
                     alert("Error: " + (err.message || "Could not trigger workflow. Check token."));
-                    localStorage.removeItem('gh_pat'); // Reset token if it failed
+                    localStorage.removeItem('gh_pat');
                 }
             } catch (e) {
                 alert("Network error occurred.");
@@ -227,7 +275,6 @@
                 lucide.createIcons();
             }
         }
-
     </script>
 </body>
 

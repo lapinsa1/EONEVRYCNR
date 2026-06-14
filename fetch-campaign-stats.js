@@ -1,29 +1,33 @@
 require('dotenv').config();
 const fs = require('fs');
 
-// Calculate dynamic CST campaign window from 00:00 CST
-function getCentralTimeWindow() {
-    const end = new Date();
-    
-    // Calculate the dynamic millisecond offset between UTC and CST time
-    const offsetMs = new Date(end.toLocaleString('en-US', { timeZone: 'America/Chicago' })) 
-                     - new Date(end.toLocaleString('en-US', { timeZone: 'UTC' }));
+const CAMPAIGN_START = "2026-06-11";
+const CAMPAIGN_END = "2026-07-19";
+const CAMPAIGN_CODE = 'EONEVRYCNR';
 
-    // Get the current date components as they appear in CST right now
-    const chicagoNow = new Date(end.getTime() + offsetMs);
-    
-    // Target exact midnight (00:00:00) local CST time
+// Helper to find exact UTC Date corresponding to 00:00:00 CST for any given date
+function getCSTMidnight(date) {
+    const offsetMs = new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' })) 
+                     - new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const chicagoNow = new Date(date.getTime() + offsetMs);
     const startLocal = new Date(Date.UTC(
         chicagoNow.getUTCFullYear(),
         chicagoNow.getUTCMonth(),
         chicagoNow.getUTCDate(),
         0, 0, 0, 0
     ));
+    return new Date(startLocal.getTime() - offsetMs);
+}
 
-    // Convert the local midnight back to the proper global UTC time
-    const start = new Date(startLocal.getTime() - offsetMs);
-
-    return { startISO: start.toISOString(), endISO: end.toISOString() };
+// Helper to format any date into YYYY-MM-DD in CST
+function getCSTDateString(date) {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Chicago',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    const parts = formatter.formatToParts(date);
+    const cst = Object.fromEntries(parts.map(p => [p.type, p.value]));
+    return `${cst.year}-${cst.month}-${cst.day}`;
 }
 
 // Send query to Gigya accounts.search endpoint
@@ -51,14 +55,8 @@ function parseResults(results, queryName) {
     }, {});
 }
 
-async function getCountryStats() {
-    const credentials = { apiKey: process.env.GIGYA_API_KEY, userKey: process.env.GIGYA_USER_KEY, secretKey: process.env.GIGYA_SECRET_KEY };
-    const campaign = 'EONEVRYCNR';
-
-    if (!credentials.apiKey || !credentials.userKey || !credentials.secretKey) return console.error("Error: Missing env credentials.");
-    const { startISO, endISO } = getCentralTimeWindow();
-
-    const queries = {
+function generateQueries(campaign, startISO, endISO) {
+    return {
         grandTotal: `SELECT count(*) FROM accounts WHERE (data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}') OR (data.sourceCode.email.updateIndividual = '${campaign}' AND lastUpdated < '${endISO}')`,
         grandTotalNew: `SELECT count(*) FROM accounts WHERE data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}'`,
         grandTotalUpdates: `SELECT count(*) FROM accounts WHERE (data.sourceCode.email.updateIndividual = '${campaign}' AND data.sourceCode.email.createIndividual != '${campaign}') AND lastUpdated < '${endISO}'`,
@@ -74,38 +72,87 @@ async function getCountryStats() {
         grandTotalDeuNewOptInConfirmed: `SELECT count(*) FROM emailAccounts WHERE ((data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}') OR (data.sourceCode.email.updateIndividual = '${campaign}' AND lastUpdated < '${endISO}')) AND profile.country = "urn:com.ehi:prd:reference:location:country:DEU" AND subscriptions.ERAC_RENTAL_DOIEMAIL.email.isSubscribed = true`,
         dailyTotalDeuNewOptInConfirmed: `SELECT count(*) FROM emailAccounts WHERE (data.sourceCode.email.createIndividual = '${campaign}' AND created >= '${startISO}' AND created < '${endISO}') AND profile.country = "urn:com.ehi:prd:reference:location:country:DEU" AND subscriptions.ERAC_RENTAL_DOIEMAIL.email.isSubscribed = true`
     };
+}
 
-    try {
-        console.log(`Fetching: ${startISO} to ${endISO}...`);
-        const queryKeys = Object.keys(queries);
-        const responses = await Promise.all(queryKeys.map(key => queryGigya(queries[key], credentials)));
+async function getCountryStats() {
+    const credentials = { apiKey: process.env.GIGYA_API_KEY, userKey: process.env.GIGYA_USER_KEY, secretKey: process.env.GIGYA_SECRET_KEY };
 
-        const finalOutput = {};
-        queryKeys.forEach((key, idx) => finalOutput[key] = parseResults(responses[idx].results, key));
+    if (!credentials.apiKey || !credentials.userKey || !credentials.secretKey) return console.error("Error: Missing env credentials.");
+    if (!fs.existsSync('./data')) fs.mkdirSync('./data');
 
-        // Safely extract current time parts directly from America/Chicago timezone
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/Chicago',
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', hour12: false
-        });
-        const parts = formatter.formatToParts(new Date());
-        const cst = Object.fromEntries(parts.map(p => [p.type, p.value]));
-        
-        // Constructs perfectly accurate strings: YYYY-MM-DD_HH-mm
-        const timestamp = `${cst.year}-${cst.month}-${cst.day}_${cst.hour}-${cst.minute}`;
-        const datePart = `${cst.year}-${cst.month}-${cst.day}`;
-                
-        finalOutput["lastUpdated"] = timestamp;
+    const now = new Date();
+    const todayMidnight = getCSTMidnight(now);
+    const todayStr = getCSTDateString(now);
 
-        if (!fs.existsSync('./data')) fs.mkdirSync('./data');
-        
-        fs.writeFileSync(`./data/crossbar-${timestamp}.json`, JSON.stringify(finalOutput, null, 2), 'utf-8'); // Hourly snapshot
-        fs.writeFileSync(`./data/crossbar-${datePart}.json`, JSON.stringify(finalOutput, null, 2), 'utf-8'); // Daily tracking snapshot
-        fs.writeFileSync(`./data/crossbar-latest.json`, JSON.stringify(finalOutput, null, 2), 'utf-8'); // Dashboard feed file
-        console.log(`✅ Data files updated successfully (Central Time).`);
-    } catch (error) {
-        console.error("Execution error:", error);
+    // ==========================================
+    // PHASE 1: GENERATE COMPLETED PAST DAYS (00:00 to 24:00 CST)
+    // ==========================================
+    let loopDate = new Date(getCSTMidnight(new Date(`${CAMPAIGN_START}T12:00:00Z`)));
+    
+    while (loopDate < todayMidnight) {
+        const loopStr = getCSTDateString(loopDate);
+        const filePath = `./data/crossbar-${loopStr}.json`;
+
+        if (loopStr >= CAMPAIGN_START && loopStr <= CAMPAIGN_END && !fs.existsSync(filePath)) {
+            console.log(`Historical day finalized file missing for ${loopStr}. Generating full window (00:00 to 24:00 CST)...`);
+            
+            const startISO = getCSTMidnight(loopDate).toISOString();
+            const nextDay = new Date(loopDate.getTime() + 24 * 60 * 60 * 1000);
+            const endISO = getCSTMidnight(nextDay).toISOString();
+
+            try {
+                const queries = generateQueries(CAMPAIGN_CODE, startISO, endISO);
+                const queryKeys = Object.keys(queries);
+                const responses = await Promise.all(queryKeys.map(key => queryGigya(queries[key], credentials)));
+
+                const finalOutput = {};
+                queryKeys.forEach((key, idx) => finalOutput[key] = parseResults(responses[idx].results, key));
+
+                finalOutput["lastUpdated"] = `${loopStr}_24-00`;
+                fs.writeFileSync(filePath, JSON.stringify(finalOutput, null, 2), 'utf-8');
+                console.log(`✅ Finalized daily snapshot saved: ${filePath}`);
+            } catch (err) {
+                console.error(`Error processing historical snapshot for ${loopStr}:`, err);
+            }
+        }
+        loopDate = new Date(loopDate.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    // ==========================================
+    // PHASE 2: GENERATE LIVE ONGOING METRICS (TODAY)
+    // ==========================================
+    if (todayStr >= CAMPAIGN_START && todayStr <= CAMPAIGN_END) {
+        console.log(`Fetching current ongoing day metrics for ${todayStr}...`);
+        const startISO = todayMidnight.toISOString();
+        const endISO = now.toISOString();
+
+        try {
+            const queries = generateQueries(CAMPAIGN_CODE, startISO, endISO);
+            const queryKeys = Object.keys(queries);
+            const responses = await Promise.all(queryKeys.map(key => queryGigya(queries[key], credentials)));
+
+            const finalOutput = {};
+            queryKeys.forEach((key, idx) => finalOutput[key] = parseResults(responses[idx].results, key));
+
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Chicago',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            });
+            const parts = formatter.formatToParts(now);
+            const cst = Object.fromEntries(parts.map(p => [p.type, p.value]));
+            
+            const timestamp = `${cst.year}-${cst.month}-${cst.day}_${cst.hour}-${cst.minute}`;
+            finalOutput["lastUpdated"] = timestamp;
+
+            fs.writeFileSync(`./data/crossbar-${timestamp}.json`, JSON.stringify(finalOutput, null, 2), 'utf-8');
+            fs.writeFileSync(`./data/crossbar-latest.json`, JSON.stringify(finalOutput, null, 2), 'utf-8');
+            console.log(`✅ Live runtime dashboard tracking complete.`);
+        } catch (error) {
+            console.error("Execution error on live tracking data execution:", error);
+        }
+    } else {
+        console.log(`Current calendar day (${todayStr}) sits outside the planned active window boundaries.`);
     }
 }
 
