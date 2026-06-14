@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
+
 <body class="bg-gray-50 p-6 font-sans antialiased">
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -16,38 +18,67 @@
             <p class="text-sm text-slate-500">Dashboard for Monitoring Sign-Ups for the ONEVERYCORNER campaign</p>
         </div>
         <div class="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-            <button id="refreshBtn" onclick="triggerGithubRefresh()" class="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-colors cursor-pointer">
+            <button id="refreshBtn" onclick="triggerGithubRefresh()"
+                class="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-colors cursor-pointer">
                 <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                 <span>Refresh Data</span>
             </button>
-            <div class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm">
+            <div
+                class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm">
                 <i data-lucide="calendar" class="w-4 h-4"></i>
-                <span>Dashboard last updated: <span id="lastUpdated" class="font-bold text-indigo-900">-</span></span>
+                <span>Dashboard last updated: <span id="lastUpdated" class="font-bold text-indigo-900">-</span>
+                    CST</span>
             </div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-            <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Grand Total Sign-ups</p>
-                <h3 id="grandTotal" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+        <!-- Grand Total Card -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center shrink-0">
+                    <i data-lucide="trending-up" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Grand Total Sign-ups</p>
+                    <h3 id="grandTotal" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+                </div>
             </div>
-            <div class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center"><i data-lucide="trending-up" class="w-6 h-6"></i></div>
         </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-            <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">New Customer Total</p>
-                <h3 id="grandTotalNew" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+
+        <!-- New Customer Card -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center shrink-0">
+                    <i data-lucide="user-plus" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">New Customer Total</p>
+                    <h3 id="grandTotalNew" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+                </div>
             </div>
-            <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center"><i data-lucide="user-plus" class="w-6 h-6"></i></div>
+            <div class="text-right shrink-0">
+                <span id="newCustomerPercent" class="text-3xl font-bold text-slate-400 block leading-none">-</span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-1">of total</span>
+            </div>
         </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-            <div>
-                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Existing User Total</p>
-                <h3 id="grandTotalUpdates" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+
+        <!-- Existing User Card -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-sky-50 text-sky-500 rounded-xl flex items-center justify-center shrink-0">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Existing User Total</p>
+                    <h3 id="grandTotalUpdates" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+                </div>
             </div>
-            <div class="w-12 h-12 bg-sky-50 text-sky-500 rounded-xl flex items-center justify-center"><i data-lucide="users" class="w-6 h-6"></i></div>
+            <div class="text-right shrink-0">
+                <span id="existingUserPercent" class="text-3xl font-bold text-slate-400 block leading-none">-</span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-1">of total</span>
+            </div>
         </div>
     </div>
 
@@ -61,8 +92,12 @@
         </div>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-[480px]">
-            <div class="flex items-center gap-2 mb-6"><i data-lucide="bar-chart-3" class="w-5 h-5 text-indigo-600"></i><h4 class="text-sm font-bold text-slate-800">Regional Performance</h4></div>
-            <div id="regionalPerformance" class="space-y-5 overflow-y-auto pr-6 flex-1"><p class="text-sm text-slate-400">Loading data...</p></div>
+            <div class="flex items-center gap-2 mb-6"><i data-lucide="bar-chart-3" class="w-5 h-5 text-indigo-600"></i>
+                <h4 class="text-sm font-bold text-slate-800">Regional Performance</h4>
+            </div>
+            <div id="regionalPerformance" class="space-y-5 overflow-y-auto pr-6 flex-1">
+                <p class="text-sm text-slate-400">Loading data...</p>
+            </div>
         </div>
     </div>
 
@@ -81,6 +116,14 @@
                 document.getElementById('grandTotal').innerText = data.grandTotal.toLocaleString('en-US');
                 document.getElementById('grandTotalNew').innerText = data.grandTotalNew.toLocaleString('en-US');
                 document.getElementById('grandTotalUpdates').innerText = data.grandTotalUpdates.toLocaleString('en-US');
+
+                if (data.grandTotal > 0) {
+                    const newPercent = ((data.grandTotalNew / data.grandTotal) * 100).toFixed(1);
+                    const existingPercent = ((data.grandTotalUpdates / data.grandTotal) * 100).toFixed(1);
+
+                    document.getElementById('newCustomerPercent').innerText = `${newPercent}%`;
+                    document.getElementById('existingUserPercent').innerText = `${existingPercent}%`;
+                }
 
                 const sortedCountries = Object.entries(data.grandTotalCountrySplit).sort((a, b) => b[1] - a[1]);
                 const chartLabels = [], chartValues = [], container = document.getElementById('regionalPerformance');
@@ -112,8 +155,8 @@
                 lucide.createIcons();
             })
             .catch(() => document.getElementById('regionalPerformance').innerHTML = `<p class="text-red-500 font-bold">Error loading dashboard data.</p>`);
-    
-    async function triggerGithubRefresh() {
+
+        async function triggerGithubRefresh() {
             let token = localStorage.getItem('gh_pat');
             if (!token) {
                 token = prompt("Enter token:");
@@ -128,7 +171,7 @@
             lucide.createIcons();
 
             try {
-                const response = await fetch('https://api.github.com/repos/lapinsa1.github.io/EONEVRYCNR/actions/workflows/fetch-stats.yml/dispatches', {
+                const response = await fetch('https://api.github.com/repos/lapinsa1/EONEVRYCNR/actions/workflows/fetch-stats.yml/dispatches', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -155,4 +198,5 @@
         }
     </script>
 </body>
+
 </html>
