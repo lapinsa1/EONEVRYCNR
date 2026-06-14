@@ -1,9 +1,9 @@
 {
-  "grandTotal": 4699,
-  "grandTotalNew": 3401,
+  "grandTotal": 4700,
+  "grandTotalNew": 3402,
   "grandTotalUpdates": 1298,
   "grandTotalCountrySplit": {
-    "USA": 3786,
+    "USA": 3787,
     "GBR": 403,
     "CAN": 310,
     "DEU": 69,
@@ -11,11 +11,11 @@
     "ESP": 43,
     "IRL": 25
   },
-  "dailyTotal": 413,
-  "dailyTotalNew": 304,
+  "dailyTotal": 414,
+  "dailyTotalNew": 305,
   "dailyTotalUpdates": 109,
   "dailyTotalCountrySplit": {
-    "USA": 264,
+    "USA": 265,
     "GBR": 82,
     "CAN": 21,
     "DEU": 17,
@@ -24,7 +24,7 @@
     "IRL": 6
   },
   "dailyTotalNewCountrySplit": {
-    "USA": 190,
+    "USA": 191,
     "GBR": 59,
     "DEU": 16,
     "CAN": 14,
@@ -42,5 +42,5 @@
   },
   "grandTotalDeuNewOptInConfirmed": 15,
   "dailyTotalDeuNewOptInConfirmed": 0,
-  "lastUpdated": "2026-06-14_10-10"
+  "lastUpdated": "2026-06-14_10-11"
 }
