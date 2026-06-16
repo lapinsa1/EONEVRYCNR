@@ -1,9 +1,9 @@
 {
-  "grandTotal": 12687,
-  "grandTotalNew": 9615,
+  "grandTotal": 12690,
+  "grandTotalNew": 9618,
   "grandTotalUpdates": 3072,
   "grandTotalCountrySplit": {
-    "USA": 10968,
+    "USA": 10971,
     "GBR": 717,
     "CAN": 602,
     "FRA": 136,
@@ -13,11 +13,11 @@
     "COL": 1,
     "CYM": 1
   },
-  "dailyTotal": 3355,
-  "dailyTotalNew": 2396,
+  "dailyTotal": 3358,
+  "dailyTotalNew": 2399,
   "dailyTotalUpdates": 942,
   "dailyTotalCountrySplit": {
-    "USA": 3007,
+    "USA": 3010,
     "GBR": 161,
     "CAN": 114,
     "FRA": 31,
@@ -26,7 +26,7 @@
     "ESP": 12
   },
   "dailyTotalNewCountrySplit": {
-    "USA": 2199,
+    "USA": 2202,
     "GBR": 103,
     "CAN": 45,
     "FRA": 22,
