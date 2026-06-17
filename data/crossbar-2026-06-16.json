@@ -1,0 +1,49 @@
+{
+  "grandTotal": 14354,
+  "grandTotalNew": 11054,
+  "grandTotalUpdates": 3300,
+  "grandTotalCountrySplit": {
+    "USA": 12537,
+    "GBR": 750,
+    "CAN": 652,
+    "FRA": 141,
+    "DEU": 120,
+    "ESP": 99,
+    "IRL": 53,
+    "COL": 1,
+    "CYM": 1
+  },
+  "dailyTotal": 5031,
+  "dailyTotalNew": 3835,
+  "dailyTotalUpdates": 1179,
+  "dailyTotalCountrySplit": {
+    "USA": 4583,
+    "GBR": 194,
+    "CAN": 166,
+    "FRA": 36,
+    "DEU": 20,
+    "ESP": 17,
+    "IRL": 15
+  },
+  "dailyTotalNewCountrySplit": {
+    "USA": 3562,
+    "GBR": 130,
+    "CAN": 82,
+    "FRA": 27,
+    "ESP": 12,
+    "IRL": 12,
+    "DEU": 10
+  },
+  "dailyTotalUpdatesCountrySplit": {
+    "USA": 1012,
+    "CAN": 82,
+    "GBR": 60,
+    "DEU": 9,
+    "FRA": 8,
+    "ESP": 5,
+    "IRL": 3
+  },
+  "grandTotalDeuNewOptInConfirmed": 29,
+  "dailyTotalDeuNewOptInConfirmed": 0,
+  "lastUpdated": "2026-06-16_24-00"
+}
