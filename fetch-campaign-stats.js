@@ -59,9 +59,10 @@ function generateQueries(campaign, startISO, endISO) {
     return {
         grandTotal: `SELECT count(*) FROM accounts WHERE (data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}') OR (data.sourceCode.email.updateIndividual = '${campaign}' AND lastUpdated < '${endISO}')`,
         grandTotalNew: `SELECT count(*) FROM accounts WHERE data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}'`,
+        grandTotalNewConversionRate: `SELECT count(*) FROM accounts WHERE data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}' AND data.program.memberNumber != null`,
         grandTotalUpdates: `SELECT count(*) FROM accounts WHERE (data.sourceCode.email.updateIndividual = '${campaign}' AND data.sourceCode.email.createIndividual != '${campaign}') AND lastUpdated < '${endISO}'`,
         grandTotalCountrySplit: `SELECT profile.country, count(*) FROM accounts WHERE (data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}') OR (data.sourceCode.email.updateIndividual = '${campaign}' AND lastUpdated < '${endISO}') GROUP BY profile.country`,
-       
+
         dailyTotal: `SELECT count(*) FROM accounts WHERE ((data.sourceCode.email.createIndividual = '${campaign}' AND created >= '${startISO}' AND created < '${endISO}') OR (data.sourceCode.email.updateIndividual = '${campaign}' AND lastUpdated >= '${startISO}' AND lastUpdated < '${endISO}'))`,
         dailyTotalNew: `SELECT count(*) FROM accounts WHERE data.sourceCode.email.createIndividual = '${campaign}' AND created >= '${startISO}' AND created < '${endISO}'`,
         dailyTotalUpdates: `SELECT count(*) FROM accounts WHERE (data.sourceCode.email.updateIndividual = '${campaign}' AND data.sourceCode.email.createIndividual != '${campaign}') AND lastUpdated >= '${startISO}' AND lastUpdated < '${endISO}'`,
