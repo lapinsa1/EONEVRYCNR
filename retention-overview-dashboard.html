@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consolidated Retention Performance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-gray-50 p-6 font-sans antialiased">
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Campaign Retention Dashboard</h1>
+            <p class="text-sm text-slate-500">Monitoring consolidated end-of-day volume and cumulative retention metrics</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+            <div
+                class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+                <span>Latest update: <span id="lastUpdated" class="font-bold text-indigo-900">-</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center shrink-0">
+                    <i data-lucide="trending-up" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Consolidated Volume</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">based on daily files</p>
+                    <h3 id="consolidatedVolumeCard" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+                    <i data-lucide="shield-check" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Retained Subscribers</p>
+                    <h3 id="retainedSubscribersCard" class="text-3xl font-bold text-slate-800 mt-1">-</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+                    <i data-lucide="percent" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Retention Rate</p>
+                    <h3 id="retentionPercentCard" class="text-3xl font-bold text-slate-600 mt-1">-</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-[480px]">
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="activity" class="w-5 h-5 text-indigo-600"></i>
+                <h4 class="text-sm font-bold text-slate-800">Cumulative Interaction & Retention Progression</h4>
+            </div>
+            <div class="relative w-full flex-1 min-h-0 pt-2 pb-2">
+                <canvas id="progressionChart"></canvas>
+            </div>
+            <div id="sliderContainer" class="mt-2 hidden flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider select-none shrink-0">Older</span>
+                <input type="range" id="chartSlider" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-600">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider select-none shrink-0">Most Recent</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-[480px]">
+            <div class="flex items-center gap-2 mb-6">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 text-indigo-600"></i>
+                <h4 class="text-sm font-bold text-slate-800">Country Performance Breakdown (Opt In / Total)</h4>
+            </div>
+            <div id="regionalPerformance" class="space-y-5 overflow-y-auto pr-6 flex-1">
+                <p class="text-sm text-slate-400">Loading metrics engine data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const countryNameMap = { "USA": "United States", "CAN": "Canada", "ESP": "Spain", "DEU": "Germany", "FRA": "France", "IRL": "Ireland", "GBR": "United Kingdom" };
+        const calmColors = ['#4670A6', '#E19641', '#D65A5A', '#69B3A2', '#7CB342', '#F4D03F', '#9B59B6', '#94A3B8'];
+
+        const dataFiles = [];
+        const startDate = new Date('2026-06-11');
+        const endDate = new Date(); 
+
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            dataFiles.push(`data/crossbar-${yyyy}-${mm}-${dd}.json`);
+        }
+
+        Promise.allSettled(dataFiles.map(file => fetch(file).then(res => {
+            if (!res.ok) throw new Error();
+            return res.json();
+        })))
+        .then(results => {
+            const uniqueData = results
+                .filter(r => r.status === 'fulfilled')
+                .map(r => r.value);
+
+            uniqueData.sort((a, b) => a.lastUpdated.localeCompare(b.lastUpdated));
+
+            let totalConsolidatedVolume = 0;
+            let consolidatedDailyTotalCountrySplit = {};
+
+            const latestFile = uniqueData[uniqueData.length - 1];
+            const latestTimestamp = latestFile && latestFile.lastUpdated ? latestFile.lastUpdated.split('_')[0] : "";
+            const currentGrandRetention = latestFile ? (latestFile.grandTotalRetention || latestFile.grandTotalNewRetention || 0) : 0;
+            const currentCountrySplitRetention = latestFile ? (latestFile.grandTotalCountrySplitRetention || latestFile.grandTotalNewCountrySplitRetention || {}) : {};
+
+            const timelineLabels = [];
+            const cumulativeVolumeDataset = [];
+            const historicalRetentionDataset = [];
+
+            uniqueData.forEach(data => {
+                totalConsolidatedVolume += data.dailyTotal || 0;
+
+                if (data.dailyTotalCountrySplit) {
+                    for (const [country, val] of Object.entries(data.dailyTotalCountrySplit)) {
+                        consolidatedDailyTotalCountrySplit[country] = (consolidatedDailyTotalCountrySplit[country] || 0) + val;
+                    }
+                }
+
+                const rawDateStr = data.lastUpdated.split('_')[0];
+                timelineLabels.push(rawDateStr);
+                
+                cumulativeVolumeDataset.push(totalConsolidatedVolume);
+                historicalRetentionDataset.push(data.grandTotalRetention || data.grandTotalNewRetention || 0);
+            });
+
+            if (latestTimestamp) {
+                document.getElementById('lastUpdated').innerText = latestTimestamp;
+            }
+
+            document.getElementById('consolidatedVolumeCard').innerText = totalConsolidatedVolume.toLocaleString('en-US');
+            document.getElementById('retainedSubscribersCard').innerText = currentGrandRetention.toLocaleString('en-US');
+
+            if (totalConsolidatedVolume > 0) {
+                const calculatedRetentionRate = ((currentGrandRetention / totalConsolidatedVolume) * 100).toFixed(1);
+                document.getElementById('retentionPercentCard').innerText = `${calculatedRetentionRate}%`;
+            }
+
+            const allCountryCodes = new Set([
+                ...Object.keys(consolidatedDailyTotalCountrySplit),
+                ...Object.keys(currentCountrySplitRetention)
+            ]);
+
+            const mappedCountries = [];
+            const processedCleanCodes = new Set();
+
+            allCountryCodes.forEach(rawCode => {
+                const cleanCode = rawCode.includes(':') ? rawCode.split(':').pop() : rawCode;
+                if (processedCleanCodes.has(cleanCode)) return;
+                processedCleanCodes.add(cleanCode);
+
+                const totalVol = consolidatedDailyTotalCountrySplit[cleanCode] || 0;
+                const optInVol = currentCountrySplitRetention[cleanCode] || 0;
+
+                if (countryNameMap[cleanCode] && (totalVol > 0 || optInVol > 0)) {
+                    mappedCountries.push({ code: cleanCode, totalVol: totalVol, optInVol: optInVol });
+                }
+            });
+
+            mappedCountries.sort((a, b) => b.totalVol - a.totalVol);
+
+            const container = document.getElementById('regionalPerformance');
+            container.innerHTML = '';
+
+            mappedCountries.forEach((item, idx) => {
+                const name = countryNameMap[item.code] || item.code;
+                const performancePct = item.totalVol > 0 ? ((item.optInVol / item.totalVol) * 100).toFixed(1) : 0;
+
+                container.innerHTML += `
+                    <div>
+                        <div class="flex justify-between text-sm font-semibold text-slate-700">
+                            <span>${name}</span>
+                            <div>
+                                <span class="font-bold text-slate-800">${item.optInVol.toLocaleString('en-US')} </span>
+                                <span class="font-bold text-slate-400">/ ${item.totalVol.toLocaleString('en-US')} </span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full mt-1.5 overflow-hidden">
+                            <div class="h-2 rounded-full" style="width: ${performancePct}%; background-color: ${calmColors[idx % calmColors.length]}"></div>
+                        </div>
+                        <div class="text-[10px] font-bold text-slate-400 mt-1 tracking-wider">${performancePct}% RETENTION RATE</div>
+                    </div>`;
+            });
+
+            // Set up limits for the visual sliding 10-day viewing frame
+            const totalDaysCount = timelineLabels.length;
+            let viewMinLimit = undefined;
+            let viewMaxLimit = undefined;
+
+            if (totalDaysCount > 10) {
+                viewMinLimit = timelineLabels[totalDaysCount - 10];
+                viewMaxLimit = timelineLabels[totalDaysCount - 1];
+            }
+
+            const progressionChart = new Chart(document.getElementById('progressionChart').getContext('2d'), {
+                data: {
+                    labels: timelineLabels,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Total Retention (Cumulative)',
+                            data: historicalRetentionDataset,
+                            backgroundColor: '#a63d00', 
+                            grouped: false,
+                            order: 1
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Total Consolidated Volume (Cumulative)',
+                            data: cumulativeVolumeDataset,
+                            backgroundColor: '#4670A6',
+                            grouped: false,
+                            order: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            min: viewMinLimit,
+                            max: viewMaxLimit,
+                            ticks: { color: '#64748b' }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Volume / Subscriber Count', color: '#475569', font: { weight: 'bold' } },
+                            ticks: { color: '#64748b' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, padding: 14, font: { size: 13 }, color: '#64748b' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                footer: (tooltipItems) => {
+                                    const dataIndex = tooltipItems[0].dataIndex;
+                                    const retention = historicalRetentionDataset[dataIndex];
+                                    const volume = cumulativeVolumeDataset[dataIndex];
+                                    if (volume > 0) {
+                                        const rate = ((retention / volume) * 100).toFixed(1);
+                                        return `Retention Rate: ${rate}%`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // If historical datasets exceed 10 records, configure slider events
+            if (totalDaysCount > 10) {
+                const sliderContainer = document.getElementById('sliderContainer');
+                const sliderInput = document.getElementById('chartSlider');
+
+                sliderContainer.classList.remove('hidden');
+                sliderInput.min = 0;
+                sliderInput.max = totalDaysCount - 10;
+                sliderInput.value = totalDaysCount - 10; // Default view anchor to recent dates
+
+                sliderInput.addEventListener('input', function() {
+                    const startingIndex = parseInt(this.value);
+                    progressionChart.options.scales.x.min = timelineLabels[startingIndex];
+                    progressionChart.options.scales.x.max = timelineLabels[startingIndex + 9];
+                    progressionChart.update();
+                });
+            }
+
+            lucide.createIcons();
+        })
+        .catch((err) => {
+            console.error("Dashboard Aggregator Error: ", err);
+            document.getElementById('regionalPerformance').innerHTML = `<p class="text-red-500 font-bold">Error compiling metrics across localized storage structures.</p>`;
+        });
+
+        async function triggerGithubRefresh() {
+            let token = localStorage.getItem('gh_pat');
+            if (!token) {
+                token = prompt("Enter token:");
+                if (!token) return;
+                localStorage.setItem('gh_pat', token);
+            }
+
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Refreshing...</span>`;
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('https://api.github.com/repos/lapinsa1/EONEVRYCNR/actions/workflows/fetch-stats.yml/dispatches', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' },
+                    body: JSON.stringify({ ref: 'main' })
+                });
+
+                if (response.ok) {
+                    alert("🚀 Refresh requested successfully! Please wait ~1 minute and reload the page.");
+                } else {
+                    const err = await response.json();
+                    alert("Error: " + (err.message || "Could not trigger workflow. Check token."));
+                    localStorage.removeItem('gh_pat');
+                }
+            } catch (e) {
+                alert("Network error occurred.");
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4"></i><span>Refresh Data</span>`;
+                lucide.createIcons();
+            }
+        }
+    </script>
+</body>
+
+</html>
