@@ -43,9 +43,6 @@ async function queryGigya(query, credentials) {
 // Parse and format Gigya response results
 function parseResults(results, queryName) {
     if (!results || !Array.isArray(results) || results.length === 0) return 0;
-    if (queryName.toLowerCase().includes('country') && results.length > 7) {
-        console.error(`🚨 Error [${queryName}]: Expected max 7 countries, got ${results.length}.`);
-    }
     if (results.length === 1 && !results[0]['profile.country']) return results[0]['count(*)'] || 0;
 
     return results.reduce((acc, item) => {
@@ -71,7 +68,10 @@ function generateQueries(campaign, startISO, endISO) {
         dailyTotalUpdatesCountrySplit: `SELECT profile.country, count(*) FROM accounts WHERE (data.sourceCode.email.updateIndividual = '${campaign}' AND data.sourceCode.email.createIndividual != '${campaign}') AND lastUpdated >= '${startISO}' AND lastUpdated < '${endISO}' GROUP BY profile.country`,
         
         grandTotalDeuNewOptInConfirmed: `SELECT count(*) FROM emailAccounts WHERE ((data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}') OR (data.sourceCode.email.updateIndividual = '${campaign}' AND lastUpdated < '${endISO}')) AND profile.country = "urn:com.ehi:prd:reference:location:country:DEU" AND subscriptions.ERAC_RENTAL_DOIEMAIL.email.isSubscribed = true`,
-        dailyTotalDeuNewOptInConfirmed: `SELECT count(*) FROM emailAccounts WHERE (data.sourceCode.email.createIndividual = '${campaign}' AND created >= '${startISO}' AND created < '${endISO}') AND profile.country = "urn:com.ehi:prd:reference:location:country:DEU" AND subscriptions.ERAC_RENTAL_DOIEMAIL.email.isSubscribed = true`
+        dailyTotalDeuNewOptInConfirmed: `SELECT count(*) FROM emailAccounts WHERE (data.sourceCode.email.createIndividual = '${campaign}' AND created >= '${startISO}' AND created < '${endISO}') AND profile.country = "urn:com.ehi:prd:reference:location:country:DEU" AND subscriptions.ERAC_RENTAL_DOIEMAIL.email.isSubscribed = true`,
+    
+        grandTotalRetention: `SELECT count(*) FROM emailAccounts WHERE (((data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}') OR (data.sourceCode.email.updateIndividual = '${campaign}' AND lastUpdated < '${endISO}')) AND (subscriptions.ERAC_RENTAL_EMAIL.email.isSubscribed = true OR subscriptions.ERAC_RENTAL_DOIEMAIL.email.isSubscribed = true))`,
+        grandTotalCountrySplitRetention: `SELECT profile.country, count(*) FROM emailAccounts WHERE (((data.sourceCode.email.createIndividual = '${campaign}' AND created < '${endISO}') OR (data.sourceCode.email.updateIndividual = '${campaign}' AND lastUpdated < '${endISO}')) AND (subscriptions.ERAC_RENTAL_EMAIL.email.isSubscribed = true OR subscriptions.ERAC_RENTAL_DOIEMAIL.email.isSubscribed = true)) GROUP BY profile.country`,
     };
 }
 
@@ -129,6 +129,7 @@ async function getCountryStats() {
 
         try {
             const queries = generateQueries(CAMPAIGN_CODE, startISO, endISO);
+            console.log(`Executing queries from ${startISO} to ${endISO}...`);
             const queryKeys = Object.keys(queries);
             const responses = await Promise.all(queryKeys.map(key => queryGigya(queries[key], credentials)));
 
