@@ -1,12 +1,12 @@
 {
-  "grandTotal": 213182,
-  "grandTotalNew": 184374,
+  "grandTotal": 213142,
+  "grandTotalNew": 184346,
   "grandTotalNewConversionRate": 1503,
-  "grandTotalUpdates": 28808,
+  "grandTotalUpdates": 28796,
   "grandTotalCountrySplit": {
-    "USA": 203989,
-    "CAN": 3751,
-    "GBR": 3116,
+    "USA": 203952,
+    "CAN": 3749,
+    "GBR": 3115,
     "FRA": 730,
     "ESP": 698,
     "DEU": 639,
@@ -30,29 +30,43 @@
     "ARE": 1,
     "CYM": 1
   },
-  "dailyTotal": 40,
-  "dailyTotalNew": 28,
-  "dailyTotalUpdates": 12,
+  "dailyTotal": 10143,
+  "dailyTotalNew": 8391,
+  "dailyTotalUpdates": 1752,
   "dailyTotalCountrySplit": {
-    "USA": 37,
-    "CAN": 2,
-    "GBR": 1
+    "USA": 9745,
+    "CAN": 226,
+    "GBR": 101,
+    "ESP": 28,
+    "FRA": 18,
+    "DEU": 15,
+    "IRL": 10
   },
   "dailyTotalNewCountrySplit": {
-    "USA": 25,
-    "CAN": 2,
-    "GBR": 1
+    "USA": 8137,
+    "CAN": 151,
+    "GBR": 59,
+    "FRA": 15,
+    "ESP": 13,
+    "DEU": 9,
+    "IRL": 7
   },
   "dailyTotalUpdatesCountrySplit": {
-    "USA": 12
+    "USA": 1608,
+    "CAN": 75,
+    "GBR": 42,
+    "ESP": 15,
+    "DEU": 6,
+    "FRA": 3,
+    "IRL": 3
   },
   "grandTotalDeuNewOptInConfirmed": 174,
   "dailyTotalDeuNewOptInConfirmed": 0,
-  "grandTotalRetention": 132949,
+  "grandTotalRetention": 132909,
   "grandTotalCountrySplitRetention": {
-    "USA": 124617,
-    "CAN": 3585,
-    "GBR": 2954,
+    "USA": 124580,
+    "CAN": 3583,
+    "GBR": 2953,
     "FRA": 707,
     "ESP": 672,
     "IRL": 219,
@@ -70,5 +84,5 @@
     "ARE": 1,
     "SAU": 1
   },
-  "lastUpdated": "2026-07-14_24-26"
+  "lastUpdated": "2026-07-13_24-00"
 }
