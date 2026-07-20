@@ -2,7 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 
 const CAMPAIGN_START = "2026-06-11";
-const CAMPAIGN_END = "2026-07-19";
+const CAMPAIGN_END = "2026-07-20";
 const CAMPAIGN_CODE = 'EONEVRYCNR';
 
 // Helper to find exact UTC Date corresponding to 00:00:00 CST for any given date
